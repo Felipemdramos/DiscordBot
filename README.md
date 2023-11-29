@@ -1,2 +1,2 @@
 # DiscordBot
- Discord bot in C# language
+ Discord bot in JS language
