@@ -11,22 +11,22 @@ client.on('ready', () => {
 });
 
 const IGNORE_PREFIX = "!";
-const CHANNELS = ['1179148014674255922']
+const CHANNELS = ['1179148014674255922'];
 
 const openai = new OpenAI({
-    apikey: process.env.OPENAI_KEY,
+    apiKey: process.env.OPENAI_KEY,
 });
 
 client.on('messageCreate', async (message) => {
     if(message.author.bot) return;
     if(message.content.startsWith(IGNORE_PREFIX)) return;
-    if(!CHANNELS.includes(message.channelID) && !message.mentions.users.has(client.users.id)) 
+    if(!CHANNELS.includes(message.channelID) && !message.mentions.users.has(client.user.id)) 
         return;
 
-    await message.chanel.sendTyping();
+    await message.channel.sendTyping();
 
     const sendTypingInterval = setInterval(() => {
-        message.chanel.sendTyping();
+        message.channel.sendTyping();
     }, 5000);
 
     let conversation = [];
@@ -39,13 +39,13 @@ client.on('messageCreate', async (message) => {
     let prevMessages = await message.channel.messages.fetch({limit: 10});
     prevMessages.reverse();
 
-    prevMessages.foreach((msg) =>{
-        if(msg.author.bot && msg.author.id !== client.users.id) return;
+    prevMessages.forEach((msg) => {
+        if(msg.author.bot && msg.author.id !== client.user.id) return;
         if(msg.content.startsWith(IGNORE_PREFIX))return;
 
         const username = msg.author.username.replace(/\s+/g, '_').replace(/[^\w\s]/gi, '');
 
-        if(msg.authors.id ===client.user.id){
+        if(msg.author.id === client.user.id){
             conversation.push({
                 role: 'assistant',
                 name: username,
@@ -67,16 +67,17 @@ client.on('messageCreate', async (message) => {
             model: 'gpt-3.5-turbo',
             messages: conversation,
         })
-        .catch((error) => console.error('OpenAi Error:\n, error'));
+        .catch((error) => console.error('OpenAi Error:\n', error));
 
     clearInterval(sendTypingInterval);
 
-    if(!response){
-        message.reply("Perai mano, to tendo alguns problemas aqui com a API o do OPENAI, tenta de novo em aguns estantes");
+    if(!response || !response.choices || response.choices.length === 0){
+        console.error('Erro ao receber resposta do OpenAI ou resposta vazia:', response);
+        message.reply("Perai mano, to tendo alguns problemas aqui com a API do OPENAI, tenta de novo em aguns estantes");
         return;
     }
 
-    const responseMessage = message.reply(response.choices[0].message.content);
+    const responseMessage = response.choices[0].message.content;
     const chunkSinzeLimit = 2000;
 
     for(let i = 0; i < responseMessage.length; i+= chunkSinzeLimit){
